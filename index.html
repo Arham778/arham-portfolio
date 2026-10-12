@@ -17,10 +17,11 @@
             darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'] },
                     colors: {
-                        brand: { 50: '#eff6ff', 100: '#dbeafe', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 900: '#1e3a8a' },
-                        cyber: { dark: '#020617', card: '#0f172a', border: '#1e293b' }
+                        brand: { 50: '#eff6ff', 100: '#dbeafe', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 900: '#0c4a6e' },
+                        cyan: { 400: '#22d3ee', 500: '#06b6d4', glow: '#00f0ff' },
+                        cyber: { base: '#05070D', dark: '#080d1a', card: '#0c1322', border: '#17223b' }
                     }
                 }
             }
@@ -28,46 +29,58 @@
     </script>
     <style>
         body { 
-            background-color: #020617;
+            background-color: #05070D;
             color: #94a3b8; 
             overflow-x: hidden;
         }
         .glass-nav { 
-            background: rgba(2, 6, 23, 0.85); 
+            background: rgba(5, 7, 13, 0.88); 
             backdrop-filter: blur(16px); 
-            border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+            border-bottom: 1px solid rgba(23, 34, 59, 0.85);
         }
         .glow-card {
-            background: linear-gradient(145deg, rgba(15, 23, 42, 0.9) 0%, rgba(2, 6, 23, 0.95) 100%);
-            border: 1px solid rgba(30, 41, 59, 0.8);
+            background: linear-gradient(145deg, rgba(12, 19, 34, 0.9) 0%, rgba(5, 7, 13, 0.95) 100%);
+            border: 1px solid rgba(23, 34, 59, 0.8);
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .glow-card:hover {
-            border-color: #3b82f6;
-            box-shadow: 0 0 25px rgba(59, 130, 246, 0.15), inset 0 0 10px rgba(59, 130, 246, 0.05);
+            border-color: #00f0ff;
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.15), inset 0 0 10px rgba(0, 240, 255, 0.05);
             transform: translateY(-5px);
         }
         .glow-btn {
-            box-shadow: 0 0 15px rgba(37, 99, 235, 0.3);
+            box-shadow: 0 0 15px rgba(2, 132, 199, 0.35);
             transition: all 0.3s ease;
         }
         .glow-btn:hover {
-            box-shadow: 0 0 25px rgba(59, 130, 246, 0.6);
-            text-shadow: 0 0 8px rgba(255,255,255,0.5);
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.5);
+            text-shadow: 0 0 8px rgba(255,255,255,0.6);
         }
         .glow-text-hover:hover {
-            color: #60a5fa;
-            text-shadow: 0 0 12px rgba(96, 165, 250, 0.6);
+            color: #38bdf8;
+            text-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
             transition: all 0.2s ease;
         }
         
-        /* Grid background effect */
+        /* Subtle Network / Cyber Grid background effect */
         .bg-grid {
-            background-size: 40px 40px;
-            background-image: linear-gradient(to right, rgba(30, 41, 59, 0.3) 1px, transparent 1px),
-                              linear-gradient(to bottom, rgba(30, 41, 59, 0.3) 1px, transparent 1px);
-            mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 20%, rgba(0,0,0,0) 100%);
-            -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 20%, rgba(0,0,0,0) 100%);
+            background-size: 44px 44px;
+            background-image: 
+                linear-gradient(to right, rgba(30, 48, 80, 0.25) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(30, 48, 80, 0.25) 1px, transparent 1px);
+            mask-image: radial-gradient(circle at 50% 20%, rgba(0,0,0,1) 40%, rgba(0,0,0,0.2) 90%);
+            -webkit-mask-image: radial-gradient(circle at 50% 20%, rgba(0,0,0,1) 40%, rgba(0,0,0,0.2) 90%);
+        }
+
+        /* Subtle Scanline Overlay for defense/SOC screen texture */
+        .scanline-overlay {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 100;
+            background: linear-gradient(rgba(18, 24, 38, 0) 50%, rgba(2, 6, 23, 0.22) 50%);
+            background-size: 100% 4px;
+            opacity: 0.35;
         }
 
         /* Scroll Animations */
@@ -265,7 +278,7 @@
         #cert-modal-body {
             flex: 1;
             overflow: hidden;
-            background: #020617;
+            background: #05070D;
             position: relative;
             min-height: 0;
         }
@@ -298,6 +311,10 @@
     </style>
 </head>
 <body class="antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- Subtle Scanlines Overlay & Interactive Cyber Canvas -->
+    <div class="scanline-overlay"></div>
+    <canvas id="cyber-bg" class="fixed inset-0 pointer-events-none z-[-1]"></canvas>
 
     <!-- Background Grid -->
     <div class="fixed inset-0 z-[-1] bg-grid h-screen w-full pointer-events-none"></div>
@@ -353,12 +370,20 @@
 
         <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-12 w-full">
             <div class="max-w-3xl fade-in-up">
-                <div class="inline-flex items-center px-4 py-2 rounded-full bg-slate-900/80 border border-brand-500/30 text-brand-400 text-sm font-medium mb-8 shadow-[0_0_15px_rgba(59,130,246,0.15)] backdrop-blur-sm">
-                    <span class="relative flex h-2.5 w-2.5 mr-3">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500"></span>
-                    </span>
-                    Information Security Engineer @ Comstar-ISA, USA
+                <div class="flex flex-wrap items-center gap-3 mb-8">
+                    <div class="inline-flex items-center px-4 py-2 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-sm font-medium shadow-[0_0_15px_rgba(6,182,212,0.15)] backdrop-blur-sm">
+                        <span class="relative flex h-2.5 w-2.5 mr-3">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
+                        </span>
+                        Junior Cybersecurity Engineer @ COMSTAR-ISA, USA
+                    </div>
+                    <div class="hidden sm:inline-flex items-center px-3.5 py-1.5 rounded-full bg-slate-900/70 border border-slate-800 text-xs font-mono text-slate-400 backdrop-blur-sm">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2 shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
+                        <span class="text-slate-500 mr-1.5">PERIMETER:</span><span class="text-emerald-400 font-semibold mr-3">ACTIVE</span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-2 shadow-[0_0_8px_rgba(244,63,94,0.8)] animate-pulse"></span>
+                        <span class="text-slate-500 mr-1.5">DEFCON:</span><span class="text-rose-400 font-semibold">5 / NOMINAL</span>
+                    </div>
                 </div>
                 
                 <h1 class="text-5xl md:text-7xl lg:text-8xl font-extrabold text-white tracking-tight mb-4 leading-tight">
@@ -367,7 +392,7 @@
                 </h1>
                 
                 <p class="text-xl md:text-2xl text-slate-300 mb-8 font-light max-w-2xl leading-relaxed">
-                    Securing enterprise infrastructures through advanced perimeter defense, threat monitoring, and proactive incident response.
+                    Cybersecurity engineer focused on network security, SOC operations, enterprise security solutions, and incident response.
                 </p>
                 
                 <div class="flex flex-wrap items-center gap-4 mt-8">
@@ -459,7 +484,7 @@
                 </div>
                 <div class="text-center border-l border-slate-800">
                     <div class="text-3xl font-extrabold text-white mb-1">20+</div>
-                    <div class="text-xs font-semibold text-slate-500 uppercase tracking-widest">Security Certifications</div>
+                    <div class="text-xs font-semibold text-slate-500 uppercase tracking-widest">Certifications & Technical Credentials</div>
                 </div>
                 <div class="text-center border-l border-slate-800">
                     <div class="text-3xl font-extrabold text-white mb-1">5</div>
@@ -488,7 +513,7 @@
                         I am a dedicated Cybersecurity professional with specialized experience in Security Operations (SOC), Network Security, and Incident Response. 
                     </p>
                     <p class="text-slate-400 mb-6 leading-relaxed">
-                        My proven track record includes deploying enterprise solutions such as Sophos XGS Firewalls and advanced EDR platforms. I am deeply focused on driving security compliance, proactive threat hunting, and ensuring robust data protection across complex network infrastructures.
+                        My proven track record includes deploying enterprise solutions such as Sophos XGS Firewalls and advanced EDR platforms. I am deeply focused on driving security compliance, incident response, and ensuring robust data protection across complex network infrastructures.
                     </p>
                     <div class="mt-8">
                         <a href="#contact" class="text-brand-400 font-medium hover:text-brand-300 transition-colors flex items-center">
@@ -1130,7 +1155,7 @@
     </section>
 
     <!-- Contact Section -->
-    <section id="contact" class="py-32 relative border-t border-slate-800/50 overflow-hidden bg-[#020617]">
+    <section id="contact" class="py-32 relative border-t border-slate-800/50 overflow-hidden bg-[#05070D]">
         <!-- Glow Blob -->
         <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-brand-700/15 rounded-full blur-[120px] pointer-events-none z-[-1]"></div>
 
@@ -1164,7 +1189,7 @@
     </section>
 
     <!-- Footer -->
-    <footer class="bg-[#020617] py-10 border-t border-slate-900 px-6">
+    <footer class="bg-[#05070D] py-10 border-t border-slate-900 px-6">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
             <div class="text-center md:text-left">
                 <div class="text-white font-bold text-lg mb-1">Syed Arham Ashar</div>
@@ -1319,6 +1344,112 @@
                     openCertModal(pdf, title, provider);
                 });
             });
+
+            // ── Subtle Cyber Network Canvas Background ───────────────
+            const canvas = document.getElementById('cyber-bg');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                let width, height;
+                let particles = [];
+                let animationFrameId;
+                const particleCount = Math.min(Math.floor(window.innerWidth / 28), 55);
+
+                function resize() {
+                    width = canvas.width = window.innerWidth;
+                    height = canvas.height = window.innerHeight;
+                }
+                resize();
+                window.addEventListener('resize', resize);
+
+                class Particle {
+                    constructor() {
+                        this.x = Math.random() * width;
+                        this.y = Math.random() * height;
+                        this.vx = (Math.random() - 0.5) * 0.45;
+                        this.vy = (Math.random() - 0.5) * 0.45;
+                        this.radius = Math.random() * 1.5 + 0.8;
+                    }
+                    update() {
+                        this.x += this.vx;
+                        this.y += this.vy;
+                        if (this.x < 0 || this.x > width) this.vx *= -1;
+                        if (this.y < 0 || this.y > height) this.vy *= -1;
+                    }
+                    draw() {
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(56, 189, 248, 0.45)';
+                        ctx.fill();
+                    }
+                }
+
+                for (let i = 0; i < particleCount; i++) {
+                    particles.push(new Particle());
+                }
+
+                let mouse = { x: null, y: null };
+                window.addEventListener('mousemove', e => {
+                    mouse.x = e.clientX;
+                    mouse.y = e.clientY;
+                });
+                window.addEventListener('mouseleave', () => {
+                    mouse.x = null;
+                    mouse.y = null;
+                });
+
+                function animate() {
+                    ctx.clearRect(0, 0, width, height);
+                    const maxDist = 130;
+
+                    for (let i = 0; i < particles.length; i++) {
+                        particles[i].update();
+                        particles[i].draw();
+
+                        for (let j = i + 1; j < particles.length; j++) {
+                            const dx = particles[i].x - particles[j].x;
+                            const dy = particles[i].y - particles[j].y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+
+                            if (dist < maxDist) {
+                                const alpha = (1 - dist / maxDist) * 0.14;
+                                ctx.beginPath();
+                                ctx.moveTo(particles[i].x, particles[i].y);
+                                ctx.lineTo(particles[j].x, particles[j].y);
+                                ctx.strokeStyle = `rgba(0, 240, 255, ${alpha})`;
+                                ctx.lineWidth = 0.8;
+                                ctx.stroke();
+                            }
+                        }
+
+                        // Subtle cursor interaction
+                        if (mouse.x !== null) {
+                            const dx = particles[i].x - mouse.x;
+                            const dy = particles[i].y - mouse.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist < 150) {
+                                const alpha = (1 - dist / 150) * 0.22;
+                                ctx.beginPath();
+                                ctx.moveTo(particles[i].x, particles[i].y);
+                                ctx.lineTo(mouse.x, mouse.y);
+                                ctx.strokeStyle = `rgba(56, 189, 248, ${alpha})`;
+                                ctx.lineWidth = 0.9;
+                                ctx.stroke();
+                            }
+                        }
+                    }
+                    animationFrameId = requestAnimationFrame(animate);
+                }
+
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        cancelAnimationFrame(animationFrameId);
+                    } else {
+                        animationFrameId = requestAnimationFrame(animate);
+                    }
+                });
+
+                animate();
+            }
         });
     </script>
 
